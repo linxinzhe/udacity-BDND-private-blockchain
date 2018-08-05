@@ -95,7 +95,7 @@ class Blockchain {
       }
     }).then((block) => {
       if (block) {
-        newBlock.previousBlockHash = block.hash;
+        newBlock.previousBlockHash = JSON.parse(block).hash;
       }
     }).then(() => {
       // Block hash with SHA256 using newBlock and converting to a string
@@ -163,11 +163,11 @@ class Blockchain {
           // compare blocks hash link
           return getLevelDBData(pos);
         }).then((block) => {
-          blockHash = block.hash;
+          blockHash = JSON.parse(block).hash;
 
           return getLevelDBData(pos + 1)
         }).then((block) => {
-          previousHash = block.previousBlockHash;
+          previousHash = JSON.parse(block).previousBlockHash;
 
           if (blockHash !== previousHash) {
             errorLog.push(pos);
