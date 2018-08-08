@@ -76,7 +76,7 @@ class Block {
 function createGenesisBlock() {
   return getDataToLevelDBLength().then((length) => {
     if (length === 0) {
-      Blockchain.addBlock(new Block("First block in the chain - Genesis block"));
+      return Blockchain.addBlock(new Block("First block in the chain - Genesis block"));
     }
   });
 }
@@ -146,8 +146,9 @@ class Blockchain {
   // Validate blockchain
   static validateChain() {
     let errorLog = [];
+    let promiseArray = [];
     return getDataToLevelDBLength().then((length) => {
-      for (var i = 0; i < length - 1; i++) {
+      for (let i = 0; i < length - 1; i++) {
         console.log(`Checking block ${i}`);
 
         // validate block
@@ -155,7 +156,7 @@ class Blockchain {
         let blockHash = "";
         let previousHash = "";
 
-        this.validateBlock(pos).then(result => {
+        promiseArray.push(this.validateBlock(pos).then(result => {
           if (!result) {
             errorLog.push(pos)
           }
@@ -172,16 +173,16 @@ class Blockchain {
           if (blockHash !== previousHash) {
             errorLog.push(pos);
           }
-
-        });
+        }));
       }
-    }).then(() => {
-      if (errorLog.length > 0) {
-        console.log('Block errors = ' + errorLog.length);
-        console.log('Blocks: ' + errorLog);
-      } else {
-        console.log('No errors detected');
-      }
+      return Promise.all(promiseArray).then(() => {
+        if (errorLog.length > 0) {
+          console.log('Block errors = ' + errorLog.length);
+          console.log('Blocks: ' + errorLog);
+        } else {
+          console.log('No errors detected');
+        }
+      });
     });
   }
 }
@@ -195,7 +196,34 @@ createGenesisBlock().then(() => {
 }).then(() => {
   return Blockchain.addBlock(new Block("b"));
 }).then(() => {
-  return Blockchain.addBlock(new Block("c"));
+  return getDataToLevelDBLength();
+}).then((value) => {
+  console.log(value);
 }).then(() => {
+  return Blockchain.getBlock(0);
+}).then((value) => {
+  console.log(value);
+}).then(() => {
+  return Blockchain.getBlock(1);
+}).then((value) => {
+  console.log(value);
+}).then(() => {
+  return Blockchain.getBlock(2);
+}).then((value) => {
+  console.log(value);
+}).then(() => {
+  console.log("---- validateChain----");
   return Blockchain.validateChain();
-});
+}).then(() => {
+  console.log("----modify block 1:height 2-----");
+  console.log("----remove block 1:height 2 previousBlockHash-----");
+  return Blockchain.getBlock(2);
+}).then((value) => {
+  a = value;
+  a.previousBlockHash = '';
+  console.log(a);
+  return db.put(2, JSON.stringify(a));
+}).then((value) => {
+  console.log("---- validateChain again----");
+  return Blockchain.validateChain();
+})
