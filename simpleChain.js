@@ -145,7 +145,7 @@ class Blockchain {
 
   // Validate blockchain
   static validateChain() {
-    let errorLog = [];
+    let errorLog = new Set();
     let promiseArray = [];
     return getDataToLevelDBLength().then((length) => {
       for (let i = 0; i < length - 1; i++) {
@@ -158,7 +158,7 @@ class Blockchain {
 
         promiseArray.push(this.validateBlock(pos).then(result => {
           if (!result) {
-            errorLog.push(pos)
+            errorLog.add(pos)
           }
         }).then(() => {
           // compare blocks hash link
@@ -171,14 +171,28 @@ class Blockchain {
           previousHash = JSON.parse(block).previousBlockHash;
 
           if (blockHash !== previousHash) {
-            errorLog.push(pos);
+            errorLog.add(pos + 1);
           }
         }));
       }
+
+      // validate last one
+      if (length > 0) {
+        const lastPos = length - 1;
+        console.log(`Checking block ${lastPos}`);
+        promiseArray.push(this.validateBlock(lastPos).then((valid) => {
+          if (!valid) {
+            errorLog.add(length - 1);
+          }
+        }));
+      }
+
       return Promise.all(promiseArray).then(() => {
-        if (errorLog.length > 0) {
-          console.log('Block errors = ' + errorLog.length);
-          console.log('Blocks: ' + errorLog);
+        if (errorLog.size > 0) {
+          console.log('Block errors = ' + errorLog.size);
+          errorLog.forEach((item) => {
+            console.log('Blocks: ' + item);
+          });
         } else {
           console.log('No errors detected');
         }
